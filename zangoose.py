@@ -47,11 +47,20 @@ def extractPTR(answer):
     raise ValueError('no PTR')
 
 
+def maybeEnableKeepAlive(transport):
+    meth = getattr(transport, 'setTcpKeepAlive', None)
+    if meth is not None:
+        meth(True)
+
+
 class ProxyClientProtocol(protocol.Protocol):
     def __init__(self):
         self.peer = None
         self.peerBuffer = []
         self.earlyLoss = False
+
+    def connectionMade(self):
+        maybeEnableKeepAlive(self.transport)
 
     def peerEstablished(self, peer):
         if self.earlyLoss:
@@ -85,6 +94,7 @@ class ProxyProtocol(protocol.Protocol):
         self.deferred = None
 
     def connectionMade(self):
+        maybeEnableKeepAlive(self.transport)
         self.count = next(connectionCounter)
         peer = self.transport.getPeer()
         msg('%s: connection established from %s' % (self.count, peer))
